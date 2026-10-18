@@ -27,8 +27,9 @@ class Zustandszaehler extends IPSModuleStrict
         $this->RegisterPropertyInteger('ClearColor', 0x2FB344);
         $this->RegisterPropertyString('Items', '[]');
 
-        // Unter Symcon 9.0 gibt es den Vollbildtyp nicht, dort bleibt die maximierte Ansicht leer
-        $this->SetVisualizationType(defined('INSTANCE_VISUALIZATION_TYPE_HTML_FULLSCREEN') ? INSTANCE_VISUALIZATION_TYPE_HTML_FULLSCREEN : INSTANCE_VISUALIZATION_TYPE_HTML);
+        // Die Konstanten für den Kachel-Typ gibt es erst ab Symcon 9.1, auf 9.0 fehlt auch INSTANCE_VISUALIZATION_TYPE_HTML.
+        // Deshalb steht für HTML der Wert 1 aus der Doku. Der Vollbildtyp (2) braucht 9.1, sonst bleibt die maximierte Ansicht leer.
+        $this->SetVisualizationType(defined('INSTANCE_VISUALIZATION_TYPE_HTML_FULLSCREEN') ? INSTANCE_VISUALIZATION_TYPE_HTML_FULLSCREEN : 1);
     }
 
     public function ApplyChanges(): void
