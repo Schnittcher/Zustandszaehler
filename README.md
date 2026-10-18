@@ -25,6 +25,12 @@ Mit diesem Modul lässt sich zählen, wie viele Lichter an oder Fenster offen si
 
 ![Maximierte Kachel mit der Liste der Lichter, direkt schaltbar](docs/screenshots/vollbild_licht_schaltbar.png)
 
+![Maximierte Kachel für Fenster](docs/screenshots/vollbild_fenster.png)
+
+![Licht und Fenster nebeneinander mit den aktiven Elementen je Gruppe](docs/screenshots/kachel_gross.png)
+
+![Kacheln mit „Alle anzeigen“: auch inaktive Elemente, die Liste scrollt mit schmalem Balken](docs/screenshots/vollbild_alle_angezeigt.png)
+
 ## 1. Voraussetzungen
 
 * mindestens IPS Version 9.0
