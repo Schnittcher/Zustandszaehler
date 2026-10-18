@@ -19,6 +19,18 @@ class ZustandszaehlerTest extends TestCase
         parent::setUp();
     }
 
+    // Die Konstanten für den Kachel-Typ gibt es erst ab Symcon 9.1. Die Stubs definieren sie nicht, der Test bildet also ein
+    // System ohne sie nach (Symcon 9.0): Die Instanz muss sich trotzdem anlegen lassen.
+    public function testInstanceCanBeCreatedOnSystemsWithoutVisualizationConstants(): void
+    {
+        $this->assertFalse(defined('INSTANCE_VISUALIZATION_TYPE_HTML'));
+        $this->assertFalse(defined('INSTANCE_VISUALIZATION_TYPE_HTML_FULLSCREEN'));
+
+        $counter = $this->counter([$this->row('EG', $this->boolVar(true))]);
+
+        $this->assertSame(1, $this->total($counter));
+    }
+
     // --- Zähllogik ---
 
     public function testBooleanCountsWhenTrue(): void

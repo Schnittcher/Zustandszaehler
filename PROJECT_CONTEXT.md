@@ -48,7 +48,7 @@ Die Kachel ist ein Gerät (`type` 3) mit `module.html`. Sie bekommt Zählstände
 ## Bekannte Risiken und offene Fragen
 
 - Die Kachel wurde in einer Testseite geprüft, noch nicht in der echten Visualisierung. Der Schwellwert für die maximierte Ansicht (24 Zeilenhöhen) ist geschätzt.
-- Die Stubs liefern keine Variablenmeldungen und kennen `GetMessageList` nicht. Das Nachzählen über Nachrichten (`VM_UPDATE`, `IM_CHANGESETTINGS`) belegt nur ein Test auf `symcon-dev`. Die Konstanten für den Kachel-Typ ergänzt `tests/bootstrap.php`.
+- Die Stubs liefern keine Variablenmeldungen und kennen `GetMessageList` nicht. Das Nachzählen über Nachrichten (`VM_UPDATE`, `IM_CHANGESETTINGS`) belegt nur ein Test auf `symcon-dev`. Die Konstanten `INSTANCE_VISUALIZATION_TYPE_*` fehlen in den Stubs und auf Symcon 9.0. Das Modul nutzt den Wert `1` und sichert nur die Vollbild-Konstante mit `defined()` ab, ein Test legt eine Instanz ohne die Konstanten an.
 - Die Kachel-Logik (Einlesen von `module.html`, Startdaten) gibt es ähnlich in anderen Projekten, ein Kandidat für den gemeinsamen Helper.
 
 ## Pflege
