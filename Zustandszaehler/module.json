@@ -1,0 +1,12 @@
+{
+    "id": "{73437995-EDA4-4A39-B147-DBFC5436F54C}",
+    "name": "Zustandszaehler",
+    "type": 3,
+    "vendor": "",
+    "aliases": [],
+    "parentRequirements": [],
+    "childRequirements": [],
+    "implemented": [],
+    "prefix": "ZSZ",
+    "url": "https://deinsmarthome.info"
+}

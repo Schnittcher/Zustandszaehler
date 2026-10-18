@@ -1,0 +1,467 @@
+<style>
+    /* Schrift, Schriftgröße, Ränder und Farben kommen von der Visualisierung, nichts davon wird hier überschrieben */
+    .zsz {
+        --on: var(--accent-color);
+        --ok: #2fb344;
+        --line: color-mix(in srgb, var(--content-color) 14%, transparent);
+        --soft: color-mix(in srgb, var(--content-color) 6%, transparent);
+        --muted: color-mix(in srgb, var(--content-color) 60%, transparent);
+        display: flex;
+        flex-direction: column;
+        gap: 0.8em;
+        box-sizing: border-box;
+        overflow: hidden;
+        position: relative;
+        z-index: 0;
+        font-family: inherit;
+        font-size: inherit;
+        color: var(--content-color);
+    }
+
+    /* Ganze Kachel einfärben: Die Fläche liegt hinter dem Inhalt und deckt die gesamte Kachel ab.
+       Name und Maximieren-Symbol der Visualisierung bleiben darüber sichtbar. In der großen Ansicht entfällt das, damit die Liste lesbar bleibt. */
+    .zsz-fill:not(.zsz-big)::before {
+        content: '';
+        position: fixed;
+        inset: 0;
+        z-index: -1;
+        background: var(--hero);
+    }
+
+    .zsz-fill:not(.zsz-big) .zsz-hero {
+        background: transparent;
+        border-radius: 0;
+    }
+
+    .zsz * {
+        box-sizing: border-box;
+    }
+
+    /* Kleine Kachel: farbige Fläche mit der Zahl in der Mitte */
+    .zsz-hero {
+        flex: 1;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 0.2em;
+        padding: 0.8em;
+        border-radius: 1.1em;
+        background: var(--hero);
+        color: var(--heroText);
+        text-align: center;
+    }
+
+    .zsz-number {
+        font-size: 4.2em;
+        line-height: 1;
+        font-weight: 400;
+    }
+
+    .zsz-check {
+        width: 3.4em;
+        height: 3.4em;
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        background: rgba(255, 255, 255, 0.22);
+    }
+
+    .zsz-check.zsz-checkOk {
+        background: var(--ok);
+        color: #fff;
+    }
+
+    .zsz-check svg {
+        width: 2em;
+        height: 2em;
+    }
+
+    .zsz-headline {
+        font-weight: 700;
+        font-size: 1.05em;
+    }
+
+    .zsz-sub {
+        font-size: 0.8em;
+        opacity: 0.85;
+    }
+
+    /* Große (maximierte) Ansicht: kompakter Kopf und die Liste der Variablen */
+    .zsz-big .zsz-hero {
+        flex: none;
+        flex-direction: row;
+        justify-content: flex-start;
+        gap: 1em;
+        text-align: left;
+        padding: 0.8em 1.2em;
+    }
+
+    .zsz-big .zsz-number {
+        font-size: 3em;
+        min-width: 1.1em;
+        text-align: center;
+    }
+
+    .zsz-big .zsz-check {
+        width: 2.6em;
+        height: 2.6em;
+    }
+
+    .zsz-heroText {
+        min-width: 0;
+    }
+
+    .zsz-tools {
+        flex: none;
+        display: none;
+        justify-content: flex-end;
+    }
+
+    .zsz-big .zsz-tools {
+        display: flex;
+    }
+
+    .zsz-toggle {
+        font: inherit;
+        font-size: 0.8em;
+        color: var(--content-color);
+        background: transparent;
+        border: 1px solid var(--line);
+        border-radius: 2em;
+        padding: 0.3em 0.9em;
+        cursor: pointer;
+    }
+
+    .zsz-toggle:hover {
+        background: var(--soft);
+    }
+
+    .zsz-list {
+        display: none;
+        flex: 1;
+        min-height: 0;
+        overflow-y: auto;
+        flex-direction: column;
+        gap: 0.9em;
+        /* Scrollbalken schmal und dezent in den Farben der Visualisierung, Abstand zum Inhalt (standards/TILE_VISUALIZATION.md) */
+        padding-right: 0.7em;
+        scrollbar-width: thin;
+        scrollbar-color: color-mix(in srgb, var(--content-color) 30%, transparent) transparent;
+    }
+
+    .zsz-list::-webkit-scrollbar {
+        width: 0.35em;
+    }
+
+    .zsz-list::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .zsz-list::-webkit-scrollbar-thumb {
+        background: color-mix(in srgb, var(--content-color) 30%, transparent);
+        border-radius: 0.2em;
+    }
+
+    .zsz-list::-webkit-scrollbar-thumb:hover {
+        background: var(--accent-color);
+    }
+
+    .zsz-big .zsz-list {
+        display: flex;
+    }
+
+    .zsz-groupName {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        font-weight: 700;
+        padding: 0 0.2em 0.3em;
+        border-bottom: 1px solid var(--line);
+    }
+
+    .zsz-groupCount {
+        font-size: 0.85em;
+        color: var(--muted);
+        font-weight: 400;
+    }
+
+    .zsz-row {
+        display: flex;
+        align-items: center;
+        gap: 0.7em;
+        padding: 0.45em 0.2em;
+        border-bottom: 1px solid var(--line);
+    }
+
+    .zsz-dot {
+        flex: none;
+        width: 0.7em;
+        height: 0.7em;
+        border-radius: 50%;
+        background: color-mix(in srgb, var(--content-color) 25%, transparent);
+    }
+
+    .zsz-on .zsz-dot {
+        background: var(--on);
+        box-shadow: 0 0 0.5em color-mix(in srgb, var(--on) 70%, transparent);
+    }
+
+    .zsz-na .zsz-dot {
+        background: transparent;
+        border: 1px dashed var(--muted);
+    }
+
+    .zsz-rowName {
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .zsz-off .zsz-rowName,
+    .zsz-na .zsz-rowName {
+        color: var(--muted);
+    }
+
+    .zsz-na .zsz-rowName {
+        font-style: italic;
+    }
+
+    .zsz-rowState {
+        flex: none;
+        font-size: 0.82em;
+        color: var(--muted);
+    }
+
+    .zsz-on .zsz-rowState {
+        font-weight: 700;
+        color: var(--on);
+    }
+
+    .zsz-switch {
+        flex: none;
+        position: relative;
+        width: 2.4em;
+        height: 1.3em;
+        padding: 0;
+        border: 0;
+        border-radius: 1em;
+        background: color-mix(in srgb, var(--content-color) 25%, transparent);
+        cursor: pointer;
+        transition: background 0.2s ease;
+    }
+
+    .zsz-switch::after {
+        content: '';
+        position: absolute;
+        top: 0.15em;
+        left: 0.15em;
+        width: 1em;
+        height: 1em;
+        border-radius: 50%;
+        background: #fff;
+        transition: transform 0.2s ease;
+    }
+
+    .zsz-on .zsz-switch {
+        background: var(--on);
+    }
+
+    .zsz-on .zsz-switch::after {
+        transform: translateX(1.1em);
+    }
+
+    .zsz-switch:disabled {
+        opacity: 0.5;
+        cursor: wait;
+    }
+
+    .zsz-empty {
+        padding: 2em 1em;
+        text-align: center;
+        color: var(--muted);
+    }
+
+    .zsz-none {
+        padding: 0.6em 0.2em;
+        color: var(--muted);
+    }
+</style>
+
+<div class="zsz" id="zsz"></div>
+
+<script>
+    (function () {
+        var root = document.getElementById('zsz');
+        var state = null;
+        var showAll = false;
+
+        // Der Browser-Speicher kann fehlen oder eine Ausnahme werfen, die Kachel funktioniert auch ohne
+        try {
+            showAll = localStorage.getItem('zsz.showAll') === '1';
+        } catch (e) {
+        }
+
+        var CHECK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+
+        // Ab dieser Höhe (in Zeilenhöhen der Visualisierung) gilt die Kachel als maximiert und zeigt die Liste
+        var BIG_HEIGHT_EM = 24;
+
+        function el(tag, className, text) {
+            var node = document.createElement(tag);
+            if (className) {
+                node.className = className;
+            }
+            if (text !== undefined) {
+                node.textContent = text;
+            }
+            return node;
+        }
+
+        // Die Kachel füllt den Platz innerhalb der Ränder, die die Visualisierung am body setzt
+        function fit() {
+            var style = getComputedStyle(document.body);
+            var space = parseFloat(style.marginTop) + parseFloat(style.marginBottom);
+            var height = Math.max(0, window.innerHeight - space);
+            root.style.height = height + 'px';
+            var big = height / (parseFloat(style.fontSize) || 15) >= BIG_HEIGHT_EM;
+            root.classList.toggle('zsz-big', big);
+        }
+
+        function buildHero(data) {
+            var clear = data.active === 0 && data.total > 0;
+            var hero = el('div', 'zsz-hero');
+            var custom = data.colors;
+
+            // Ohne eigene Farben gilt das Design der Visualisierung: Akzentfarbe bei aktiv, neutrale Fläche bei nichts aktiv
+            if (clear) {
+                root.style.setProperty('--hero', custom ? custom.clear : 'color-mix(in srgb, var(--content-color) 8%, transparent)');
+                root.style.setProperty('--heroText', custom ? '#fff' : 'var(--content-color)');
+            } else {
+                root.style.setProperty('--hero', 'var(--on)');
+                root.style.setProperty('--heroText', '#fff');
+            }
+
+            if (clear) {
+                var check = el('div', custom ? 'zsz-check' : 'zsz-check zsz-checkOk');
+                check.innerHTML = CHECK;
+                hero.appendChild(check);
+            } else {
+                hero.appendChild(el('div', 'zsz-number', String(data.active)));
+            }
+
+            var text = el('div', 'zsz-heroText');
+            text.appendChild(el('div', 'zsz-headline', clear ? data.texts.clear : data.texts.headline));
+            text.appendChild(el('div', 'zsz-sub', data.active + ' ' + data.texts.of + ' ' + data.total));
+            hero.appendChild(text);
+            return hero;
+        }
+
+        function buildRow(item, texts) {
+            var cls = item.a === null ? 'zsz-na' : item.a ? 'zsz-on' : 'zsz-off';
+            var row = el('div', 'zsz-row ' + cls);
+            row.appendChild(el('span', 'zsz-dot'));
+            row.appendChild(el('span', 'zsz-rowName', item.n));
+
+            if (item.s === 1 && item.a !== null) {
+                // Schaltbare Variablen lassen sich hier umschalten. Das Ergebnis kommt als neue Daten vom Modul zurück.
+                var toggle = el('button', 'zsz-switch');
+                toggle.type = 'button';
+                toggle.setAttribute('role', 'switch');
+                toggle.setAttribute('aria-checked', item.a ? 'true' : 'false');
+                toggle.title = item.a ? texts.unit : texts.off;
+                toggle.addEventListener('click', function () {
+                    toggle.disabled = true;
+                    requestAction('Toggle', String(item.id));
+                    // Kommt keine Antwort, etwa weil das Gerät nicht erreichbar ist, wird der Schalter wieder frei
+                    setTimeout(function () {
+                        toggle.disabled = false;
+                    }, 4000);
+                });
+                row.appendChild(toggle);
+            } else {
+                row.appendChild(el('span', 'zsz-rowState', item.a === null ? texts.missing : item.a ? texts.unit : texts.off));
+            }
+            return row;
+        }
+
+        // Aktive Elemente stehen oben, danach die inaktiven (nur bei "Alle anzeigen") und die nicht verfügbaren
+        function buildList(data) {
+            var list = el('div', 'zsz-list');
+            var multiple = data.groups.length > 1;
+
+            data.groups.forEach(function (group) {
+                var items = group.items.filter(function (item) {
+                    return item.a === 1 || item.a === null || showAll;
+                }).sort(function (a, b) {
+                    return (b.a === 1) - (a.a === 1);
+                });
+
+                var section = el('div', 'zsz-section');
+                if (multiple) {
+                    var name = el('div', 'zsz-groupName', group.name);
+                    name.appendChild(el('span', 'zsz-groupCount', group.active + ' ' + data.texts.of + ' ' + group.items.length));
+                    section.appendChild(name);
+                }
+                if (items.length === 0) {
+                    section.appendChild(el('div', 'zsz-none', data.texts.noneActive));
+                }
+                items.forEach(function (item) {
+                    section.appendChild(buildRow(item, data.texts));
+                });
+                list.appendChild(section);
+            });
+            return list;
+        }
+
+        function render() {
+            if (!state) {
+                return;
+            }
+            root.style.setProperty('--on', state.colors ? state.colors.active : 'var(--accent-color)');
+            root.classList.toggle('zsz-fill', state.fill === true);
+            root.textContent = '';
+
+            if (state.total === 0) {
+                root.appendChild(el('div', 'zsz-empty', state.texts.empty));
+                fit();
+                return;
+            }
+
+            root.appendChild(buildHero(state));
+
+            var tools = el('div', 'zsz-tools');
+            var toggle = el('button', 'zsz-toggle', showAll ? state.texts.showActive : state.texts.showAll);
+            toggle.type = 'button';
+            toggle.addEventListener('click', function () {
+                showAll = !showAll;
+                try {
+                    localStorage.setItem('zsz.showAll', showAll ? '1' : '0');
+                } catch (e) {
+                }
+                render();
+            });
+            tools.appendChild(toggle);
+            root.appendChild(tools);
+
+            root.appendChild(buildList(state));
+            fit();
+        }
+
+        // Wird beim Laden mit den Startdaten und danach bei jeder Änderung vom Modul aufgerufen
+        window.handleMessage = function (json) {
+            try {
+                state = JSON.parse(json);
+            } catch (e) {
+                return;
+            }
+            render();
+        };
+
+        window.addEventListener('resize', fit);
+        fit();
+    })();
+</script>
