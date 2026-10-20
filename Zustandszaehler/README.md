@@ -16,11 +16,11 @@ Zählt, wie viele Lichter an oder Fenster offen sind, getrennt nach Gruppen wie 
 Feld | Beschreibung
 ------------ | ----------------
 Art | Licht (an / aus), Fenster (offen / geschlossen) oder Benutzerdefiniert. Die Art bestimmt die Texte und die Farbe der Kachel.
-Text für aktiv | Nur bei Benutzerdefiniert: Text der Überschrift, zum Beispiel "Geräte aktiv".
-Text für nichts aktiv | Nur bei Benutzerdefiniert: Text, wenn nichts aktiv ist, zum Beispiel "Alles inaktiv".
+Text für aktiv | Gilt für jede Art. Ersetzt die Überschrift der Kachel, zum Beispiel "Geräte aktiv". Leer bleibt die Vorgabe der Art ("Lichter an", "Fenster offen", "aktiv"). Bei der Art Benutzerdefiniert steht der Text auch als Bezeichnung des Zustands in der Liste.
+Text für nichts aktiv | Gilt für jede Art. Ersetzt die Meldung, wenn nichts aktiv ist, zum Beispiel "Alles inaktiv", auch in der Übersicht. Leer bleibt die Vorgabe der Art ("Alles aus", "Alles geschlossen", "Alles inaktiv").
 Zählvariable je Gruppe anlegen | Legt für jede Gruppe eine eigene Zählvariable an. Standard: an.
 Kleine Kachel vollständig einfärben | Färbt die ganze kleine Kachel in der Zustandsfarbe, nicht nur eine Fläche darin. In der maximierten Ansicht bleibt der Hintergrund normal, damit die Liste lesbar ist. Standard: an.
-Eigene Farben statt Symcon-Design verwenden | Standardmäßig übernimmt die Kachel das Design der Visualisierung: Akzentfarbe, wenn etwas aktiv ist, eine neutrale Fläche mit grünem Haken, wenn nichts aktiv ist. Mit dieser Option gelten die beiden Farben darunter. Standard: aus.
+Eigene Farben statt Symcon-Design verwenden | Standardmäßig übernimmt die Kachel das Design der Visualisierung: Akzentfarbe, wenn etwas aktiv ist, eine neutrale Fläche mit grünem "OK", wenn nichts aktiv ist. Mit dieser Option gelten die beiden Farben darunter. Standard: aus.
 Farbe, wenn etwas aktiv ist | Nur bei eigenen Farben: Farbe der Kachel, solange mindestens ein Element aktiv ist.
 Farbe, wenn nichts aktiv ist | Nur bei eigenen Farben: Farbe der Kachel, wenn nichts aktiv ist.
 Variablen | Liste der überwachten Variablen. Neue Zeilen kommen mit dem Plus unter der Liste dazu.
@@ -29,7 +29,7 @@ Spalten der Liste:
 
 Spalte | Beschreibung
 ------------ | ----------------
-Gruppe | Name der Gruppe, zum Beispiel "EG". Zeilen mit gleichem Namen bilden eine Gruppe. Die Gruppen erscheinen in der Reihenfolge, in der sie zuerst in der Liste stehen. Ohne Eintrag landet die Zeile in der Gruppe "Ohne Gruppe".
+Gruppe | Name der Gruppe, zum Beispiel "EG". Zeilen mit gleichem Namen bilden eine Gruppe. Die Gruppen erscheinen in der Reihenfolge, in der sie zuerst in der Liste stehen. Ohne Eintrag landet die Zeile in der Gruppe "Ohne Gruppe". Die Zeilen lassen sich per Drag and Drop umsortieren. Gruppen, Variablen der Gruppen und die Liste der Kachel folgen dieser Reihenfolge.
 Name | Anzeigename in Kachel und Übersicht. Bleibt das Feld leer, gilt der Name der Variable.
 Variable | Die überwachte Variable.
 oder Zustandszähler | Statt einer Variable eine andere Zustandszähler-Instanz. Deren Variablen werden übernommen, sie bilden eine Gruppe mit dem Eintrag in "Gruppe", ohne Eintrag mit dem Namen der Instanz. So entsteht eine Gesamtzahl aus den Instanzen je Etage, ohne die Variablen noch einmal zu pflegen. Ändert sich die Liste der übernommenen Instanz, baut sich diese Instanz selbst neu auf. Verweist eine Instanz im Kreis auf sich selbst, zählt die Zeile als nicht verfügbar.
@@ -61,8 +61,10 @@ Die Instanz erscheint in der Kachel-Visualisierung.
 
 Eine Instanz ergibt eine Kachel. Für eine Kachel je Etage legt man deshalb je Etage eine Instanz an und trägt dort nur die Variablen dieser Etage ein. Für eine Gesamtzahl über das ganze Haus genügt eine weitere Instanz, in deren Liste je Zeile eine Etagen-Instanz steht. Steht eine Variable über mehrere Wege in der Liste, zählt sie nur einmal.
 
-* Die kleine Kachel zeigt die Anzahl der aktiven Elemente auf farbigem Grund, auf Wunsch über die ganze Kachel. Ist nichts aktiv, zeigt sie einen Haken mit "Alles aus" beziehungsweise "Alles geschlossen".
-* In der maximierten Ansicht steht darunter die Liste der Variablen. Aktive Elemente stehen oben. Bei mehreren Gruppen ist die Liste nach Gruppen gegliedert.
+* Die kleine Kachel zeigt die Anzahl der aktiven Elemente auf farbigem Grund, auf Wunsch über die ganze Kachel. Ist nichts aktiv, steht dort "OK" statt der Zahl, darunter "Alles aus" beziehungsweise "Alles geschlossen".
+* Die Kachel passt sich der Größe des Felds an. In einem kleinen Feld (1×1) bleibt nur die Zahl, etwas größer kommt die Überschrift dazu, erst in einem großen Feld auch die Zeile "x von y".
+* In der maximierten Ansicht steht darunter die Liste der Variablen in der Reihenfolge der Konfiguration. Bei mehreren Gruppen ist die Liste nach Gruppen gegliedert.
+* Der Zustand einer Zeile steht rechts als Badge: aktiv gefüllt in der Farbe für aktiv, nicht aktiv in der Farbe für "nichts aktiv" (ohne eigene Farben grün), nicht verfügbare Variablen gestrichelt. Schaltbare Variablen zeigen stattdessen nur den Schalter.
 * Ja/Nein-Variablen mit Aktion, zum Beispiel Lichter, lassen sich in der Liste direkt schalten. Variablen ohne Aktion, Zahlen und Texte zeigen nur den Zustand. Geschaltet wird über die Aktion der Variable, das Gerät schaltet also tatsächlich.
 * Die Schaltfläche "Alle anzeigen" blendet auch die inaktiven Elemente ein. Die Auswahl merkt sich der Browser.
 * Elemente mit fehlender Variable erscheinen gestrichelt als nicht verfügbar.

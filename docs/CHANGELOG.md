@@ -1,5 +1,17 @@
 # Changelog
 
+## 20.10.2026 - Version 1.0.2
+
+### Neu
+- Die Liste lässt sich per Drag and Drop umsortieren, die Kachel zeigt die Variablen in dieser Reihenfolge.
+- Der Zustand steht in der Liste der Kachel rechts als Badge in der Farbe des Zustands, bei schaltbaren Variablen zeigt der Schalter den Zustand.
+- Ist nichts aktiv, zeigt die Kachel "OK" statt eines Hakens.
+- Die Texte für aktiv und nichts aktiv gelten für jede Art. Ist ein Feld leer, bleibt die Vorgabe der Art.
+
+### Fixes
+- Die kleine Kachel passt sich der Feldgröße an: Zahl und Texte werden in kleinen Feldern nicht mehr abgeschnitten.
+- In der Liste der Kachel stehen aktive Elemente nicht mehr automatisch oben, es gilt die Reihenfolge der Konfiguration.
+
 ## 18.10.2026 - Version 1.0.1
 
 ### Fixes

@@ -22,12 +22,12 @@
         {
             "type": "ValidationTextBox",
             "name": "ActiveText",
-            "caption": "Text for active (custom type only)"
+            "caption": "Text for active (empty = default of the type)"
         },
         {
             "type": "ValidationTextBox",
             "name": "InactiveText",
-            "caption": "Text for nothing active (custom type only)"
+            "caption": "Text for nothing active (empty = default of the type)"
         },
         {
             "type": "CheckBox",
@@ -65,6 +65,7 @@
             "name": "Items",
             "caption": "Variables",
             "rowCount": 15,
+            "changeOrder": true,
             "add": true,
             "delete": true,
             "columns": [

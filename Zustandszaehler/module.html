@@ -16,6 +16,10 @@
         font-family: inherit;
         font-size: inherit;
         color: var(--content-color);
+        /* Die Kachel richtet ihr Layout nach dem verfügbaren Platz aus (Container-Abfragen weiter unten, Maße in em) */
+        container-type: size;
+        container-name: zsz;
+        width: 100%;
     }
 
     /* Ganze Kachel einfärben: Die Fläche liegt hinter dem Inhalt und deckt die gesamte Kachel ab.
@@ -59,23 +63,10 @@
         font-weight: 400;
     }
 
-    .zsz-check {
-        width: 3.4em;
-        height: 3.4em;
-        border-radius: 50%;
-        display: grid;
-        place-items: center;
-        background: rgba(255, 255, 255, 0.22);
-    }
-
-    .zsz-check.zsz-checkOk {
-        background: var(--ok);
-        color: #fff;
-    }
-
-    .zsz-check svg {
-        width: 2em;
-        height: 2em;
+    /* Ist nichts aktiv, steht statt der Zahl "OK" */
+    .zsz-ok {
+        color: var(--okText);
+        font-weight: 700;
     }
 
     .zsz-headline {
@@ -102,11 +93,6 @@
         font-size: 3em;
         min-width: 1.1em;
         text-align: center;
-    }
-
-    .zsz-big .zsz-check {
-        width: 2.6em;
-        height: 2.6em;
     }
 
     .zsz-heroText {
@@ -230,15 +216,32 @@
         font-style: italic;
     }
 
-    .zsz-rowState {
+    /* Badge für den Zustand: aktiv in der Farbe für aktiv, nicht aktiv in der Farbe für "nichts aktiv" */
+    .zsz-badge {
         flex: none;
-        font-size: 0.82em;
-        color: var(--muted);
+        font-size: 0.78em;
+        font-weight: 700;
+        line-height: 1.3;
+        padding: 0.15em 0.75em;
+        border-radius: 2em;
+        white-space: nowrap;
+        color: var(--clear);
+        background: color-mix(in srgb, var(--clear) 16%, transparent);
+        border: 1px solid color-mix(in srgb, var(--clear) 40%, transparent);
     }
 
-    .zsz-on .zsz-rowState {
-        font-weight: 700;
-        color: var(--on);
+    .zsz-on .zsz-badge {
+        color: #fff;
+        background: var(--on);
+        border-color: var(--on);
+    }
+
+    .zsz-na .zsz-badge {
+        color: var(--muted);
+        background: transparent;
+        border: 1px dashed var(--muted);
+        font-weight: 400;
+        font-style: italic;
     }
 
     .zsz-switch {
@@ -289,6 +292,41 @@
         padding: 0.6em 0.2em;
         color: var(--muted);
     }
+
+    /* Kleine Felder: erst entfällt die Zeile "x von y", dann die Überschrift, zuletzt bleibt die Zahl allein.
+       Die Höhe ist die Höhe der Kachel innerhalb der Ränder der Visualisierung. */
+    @container zsz (max-height: 10em) {
+        .zsz:not(.zsz-big) .zsz-hero {
+            padding: 0.4em;
+            gap: 0.1em;
+        }
+
+        .zsz:not(.zsz-big) .zsz-number {
+            font-size: 3em;
+        }
+
+        .zsz:not(.zsz-big) .zsz-sub {
+            display: none;
+        }
+
+        .zsz:not(.zsz-big) .zsz-headline {
+            max-width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            font-size: 0.9em;
+        }
+    }
+
+    @container zsz (max-height: 6.5em) {
+        .zsz:not(.zsz-big) .zsz-headline {
+            display: none;
+        }
+
+        .zsz:not(.zsz-big) .zsz-number {
+            font-size: 2.6em;
+        }
+    }
 </style>
 
 <div class="zsz" id="zsz"></div>
@@ -304,8 +342,6 @@
             showAll = localStorage.getItem('zsz.showAll') === '1';
         } catch (e) {
         }
-
-        var CHECK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
 
         // Ab dieser Höhe (in Zeilenhöhen der Visualisierung) gilt die Kachel als maximiert und zeigt die Liste
         var BIG_HEIGHT_EM = 24;
@@ -340,15 +376,14 @@
             if (clear) {
                 root.style.setProperty('--hero', custom ? custom.clear : 'color-mix(in srgb, var(--content-color) 8%, transparent)');
                 root.style.setProperty('--heroText', custom ? '#fff' : 'var(--content-color)');
+                root.style.setProperty('--okText', custom ? '#fff' : 'var(--ok)');
             } else {
                 root.style.setProperty('--hero', 'var(--on)');
                 root.style.setProperty('--heroText', '#fff');
             }
 
             if (clear) {
-                var check = el('div', custom ? 'zsz-check' : 'zsz-check zsz-checkOk');
-                check.innerHTML = CHECK;
-                hero.appendChild(check);
+                hero.appendChild(el('div', 'zsz-number zsz-ok', data.texts.ok));
             } else {
                 hero.appendChild(el('div', 'zsz-number', String(data.active)));
             }
@@ -366,6 +401,11 @@
             row.appendChild(el('span', 'zsz-dot'));
             row.appendChild(el('span', 'zsz-rowName', item.n));
 
+            // Schaltbare Variablen zeigen ihren Zustand am Schalter, alle anderen rechts als Badge in der Farbe des Zustands
+            if (!(item.s === 1 && item.a !== null)) {
+                row.appendChild(el('span', 'zsz-badge', item.a === null ? texts.missing : item.a ? texts.unit : texts.off));
+            }
+
             if (item.s === 1 && item.a !== null) {
                 // Schaltbare Variablen lassen sich hier umschalten. Das Ergebnis kommt als neue Daten vom Modul zurück.
                 var toggle = el('button', 'zsz-switch');
@@ -382,13 +422,12 @@
                     }, 4000);
                 });
                 row.appendChild(toggle);
-            } else {
-                row.appendChild(el('span', 'zsz-rowState', item.a === null ? texts.missing : item.a ? texts.unit : texts.off));
             }
             return row;
         }
 
-        // Aktive Elemente stehen oben, danach die inaktiven (nur bei "Alle anzeigen") und die nicht verfügbaren
+        // Die Reihenfolge ist die der Liste in der Konfiguration. Inaktive Elemente erscheinen nur bei "Alle anzeigen",
+        // nicht verfügbare immer.
         function buildList(data) {
             var list = el('div', 'zsz-list');
             var multiple = data.groups.length > 1;
@@ -396,8 +435,6 @@
             data.groups.forEach(function (group) {
                 var items = group.items.filter(function (item) {
                     return item.a === 1 || item.a === null || showAll;
-                }).sort(function (a, b) {
-                    return (b.a === 1) - (a.a === 1);
                 });
 
                 var section = el('div', 'zsz-section');
@@ -422,6 +459,7 @@
                 return;
             }
             root.style.setProperty('--on', state.colors ? state.colors.active : 'var(--accent-color)');
+            root.style.setProperty('--clear', state.colors ? state.colors.clear : 'var(--ok)');
             root.classList.toggle('zsz-fill', state.fill === true);
             root.textContent = '';
 

@@ -421,35 +421,51 @@ class Zustandszaehler extends IPSModuleStrict
     }
 
     /**
-     * Texte nach Art des Zählers. Bei einer eigenen Art kommen sie aus der Konfiguration.
+     * Texte nach Art des Zählers. Die beiden Texte aus der Konfiguration gelten für jede Art: Ist ein Feld leer,
+     * bleibt die Vorgabe der Art. Der Text für aktiv ersetzt die Überschrift, bei der Art Benutzerdefiniert auch die
+     * Bezeichnung des Zustands in der Liste. Der Text für nichts aktiv ersetzt die Meldung, wenn nichts aktiv ist.
      */
     private function texts(): array
     {
         switch ($this->ReadPropertyInteger('Kind')) {
             case self::KIND_WINDOW:
-                return [
+                $Texts = [
                     'Headline' => $this->Translate('Windows open'),
                     'Clear'    => $this->Translate('All closed'),
                     'Active'   => $this->Translate('open'),
                     'Inactive' => $this->Translate('closed')
                 ];
+                break;
             case self::KIND_CUSTOM:
-                $Active = trim($this->ReadPropertyString('ActiveText'));
-                $Inactive = trim($this->ReadPropertyString('InactiveText'));
-                return [
-                    'Headline' => $Active !== '' ? $Active : $this->Translate('active'),
-                    'Clear'    => $Inactive !== '' ? $Inactive : $this->Translate('All inactive'),
-                    'Active'   => $Active !== '' ? $Active : $this->Translate('active'),
+                $Texts = [
+                    'Headline' => $this->Translate('active'),
+                    'Clear'    => $this->Translate('All inactive'),
+                    'Active'   => $this->Translate('active'),
                     'Inactive' => $this->Translate('inactive')
                 ];
+                break;
             default:
-                return [
+                $Texts = [
                     'Headline' => $this->Translate('Lights on'),
                     'Clear'    => $this->Translate('All off'),
                     'Active'   => $this->Translate('on'),
                     'Inactive' => $this->Translate('off')
                 ];
+                break;
         }
+
+        $Active = trim($this->ReadPropertyString('ActiveText'));
+        $Inactive = trim($this->ReadPropertyString('InactiveText'));
+        if ($Active !== '') {
+            $Texts['Headline'] = $Active;
+            if ($this->ReadPropertyInteger('Kind') === self::KIND_CUSTOM) {
+                $Texts['Active'] = $Active;
+            }
+        }
+        if ($Inactive !== '') {
+            $Texts['Clear'] = $Inactive;
+        }
+        return $Texts;
     }
 
     /**
@@ -504,6 +520,7 @@ class Zustandszaehler extends IPSModuleStrict
             'total'  => $State['Configured'],
             'groups' => $Groups,
             'texts'  => [
+                'ok'         => $this->Translate('OK'),
                 'headline'   => $Texts['Headline'],
                 'clear'      => $Texts['Clear'],
                 'of'         => $this->Translate('of'),
