@@ -442,10 +442,76 @@ class ZustandszaehlerTest extends TestCase
         $rows = [$this->row('EG', $this->boolVar(true))];
 
         $this->assertSame('Lights on', $this->tileData($this->counter($rows))['texts']['headline']);
+        // Ist nichts aktiv, zeigt die Kachel "OK" statt eines Hakens
+        $this->assertSame('OK', $this->tileData($this->counter($rows))['texts']['ok']);
         $this->assertSame('Windows open', $this->tileData($this->counter($rows, ['Kind' => 1]))['texts']['headline']);
         $custom = $this->tileData($this->counter($rows, ['Kind' => 2, 'ActiveText' => 'Geräte aktiv', 'InactiveText' => 'Ruhe']));
         $this->assertSame('Geräte aktiv', $custom['texts']['headline']);
         $this->assertSame('Ruhe', $custom['texts']['clear']);
+        // Bei der Art Benutzerdefiniert steht der Text auch als Bezeichnung des Zustands in der Liste
+        $this->assertSame('Geräte aktiv', $custom['texts']['unit']);
+    }
+
+    public function testCustomTextsApplyToEveryKindAndEmptyFieldsKeepTheDefaults(): void
+    {
+        $rows = [$this->row('EG', $this->boolVar(true))];
+
+        // Licht und Fenster: Der eigene Text ersetzt Überschrift und Meldung, die Bezeichnung des Zustands bleibt
+        $light = $this->tileData($this->counter($rows, ['Kind' => 0, 'ActiveText' => 'Brennt', 'InactiveText' => 'Dunkel']));
+        $this->assertSame('Brennt', $light['texts']['headline']);
+        $this->assertSame('Dunkel', $light['texts']['clear']);
+        $this->assertSame('on', $light['texts']['unit']);
+
+        $window = $this->tileData($this->counter($rows, ['Kind' => 1, 'ActiveText' => 'Offen', 'InactiveText' => 'Zu']));
+        $this->assertSame('Offen', $window['texts']['headline']);
+        $this->assertSame('Zu', $window['texts']['clear']);
+        $this->assertSame('open', $window['texts']['unit']);
+
+        // Nur ein Feld gesetzt: das andere behält die Vorgabe der Art. Leerzeichen allein zählen als leer.
+        $onlyActive = $this->tileData($this->counter($rows, ['Kind' => 1, 'ActiveText' => 'Offen', 'InactiveText' => '   ']));
+        $this->assertSame('Offen', $onlyActive['texts']['headline']);
+        $this->assertSame('All closed', $onlyActive['texts']['clear']);
+
+        // Auch die Textvariable nutzt den eigenen Text, wenn nichts aktiv ist
+        $off = $this->counter([$this->row('EG', $this->boolVar(false))], ['Kind' => 0, 'InactiveText' => 'Dunkel']);
+        $this->assertSame('Dunkel', GetValueString($this->ident($off, 'Summary')));
+    }
+
+    public function testItemsAndGroupsFollowTheOrderOfTheList(): void
+    {
+        $a = $this->row('EG', $this->boolVar(true), 'A');
+        $b = $this->row('OG', $this->boolVar(true), 'B');
+        $c = $this->row('EG', $this->boolVar(true), 'C');
+        $counter = $this->counter([$a, $b, $c]);
+        $this->assertSame(['EG', 'OG'], array_column($this->tileData($counter)['groups'], 'name'));
+        $this->assertSame(['A', 'C'], array_column($this->tileData($counter)['groups'][0]['items'], 'n'));
+
+        // Nach dem Umsortieren (Drag and Drop in der Liste) folgen Gruppen und Elemente der neuen Reihenfolge
+        IPS_SetProperty($counter, 'Items', json_encode([$c, $b, $a]));
+        IPS_ApplyChanges($counter);
+
+        $data = $this->tileData($counter);
+        $this->assertSame(['EG', 'OG'], array_column($data['groups'], 'name'));
+        $this->assertSame(['C', 'A'], array_column($data['groups'][0]['items'], 'n'));
+        // GetActive liefert gruppenweise in der Reihenfolge der Liste
+        $this->assertSame(['C', 'A', 'B'], ZSZ_GetActive($counter, ''));
+        $this->assertSame('EG: C, A · OG: B', GetValueString($this->ident($counter, 'Summary')));
+    }
+
+    public function testTheListInTheFormCanBeReorderedAndIsNotSorted(): void
+    {
+        $form = json_decode((string) file_get_contents(__DIR__ . '/../Zustandszaehler/form.json'), true);
+        $list = null;
+        foreach ($form['elements'] as $element) {
+            if (($element['name'] ?? '') === 'Items') {
+                $list = $element;
+            }
+        }
+
+        $this->assertNotNull($list);
+        // Mit changeOrder lässt sich die Reihenfolge per Drag and Drop ändern, eine Sortierung nach Spalten schließt das aus
+        $this->assertTrue($list['changeOrder']);
+        $this->assertArrayNotHasKey('sort', $list);
     }
 
     public function testTileHtmlIsDeliveredWithStartData(): void
