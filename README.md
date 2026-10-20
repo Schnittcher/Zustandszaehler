@@ -27,9 +27,7 @@ Mit diesem Modul lässt sich zählen, wie viele Lichter an oder Fenster offen si
 
 ![Maximierte Kachel für Fenster](docs/screenshots/vollbild_fenster.png)
 
-![Licht und Fenster nebeneinander mit den aktiven Elementen je Gruppe](docs/screenshots/kachel_gross.png)
-
-![Kacheln mit „Alle anzeigen“: auch inaktive Elemente, die Liste scrollt mit schmalem Balken](docs/screenshots/vollbild_alle_angezeigt.png)
+![Licht und Fenster nebeneinander mit der Liste je Gruppe, Schaltern und Badges](docs/screenshots/kachel_gross.png)
 
 ## 1. Voraussetzungen
 
