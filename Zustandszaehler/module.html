@@ -244,6 +244,93 @@
         font-style: italic;
     }
 
+    /* Steuerelemente nach der Darstellung der Variable. Reicht die Breite nicht, rutschen sie unter den Namen. */
+    .zsz-row {
+        flex-wrap: wrap;
+    }
+
+    .zsz-rowName {
+        flex: 1 1 8em;
+    }
+
+    .zsz-ctl {
+        flex: none;
+        display: flex;
+        align-items: center;
+        gap: 0.6em;
+        margin-left: auto;
+    }
+
+    .zsz-seg {
+        flex: none;
+        display: flex;
+        margin-left: auto;
+        border-radius: 0.5em;
+        overflow: hidden;
+        background: color-mix(in srgb, var(--on) 14%, transparent);
+    }
+
+    .zsz-ctl .zsz-seg {
+        margin-left: 0;
+    }
+
+    .zsz-segBtn {
+        font: inherit;
+        font-size: 0.82em;
+        color: var(--seg, var(--on));
+        background: transparent;
+        border: 0;
+        padding: 0.4em 0.85em;
+        cursor: pointer;
+        white-space: nowrap;
+    }
+
+    .zsz-segBtn:hover {
+        background: color-mix(in srgb, var(--seg, var(--on)) 18%, transparent);
+    }
+
+    .zsz-segBtn.zsz-segOn {
+        background: var(--seg, var(--on));
+        color: #fff;
+        font-weight: 700;
+    }
+
+    .zsz-hint {
+        font-size: 0.8em;
+        color: var(--muted);
+        white-space: nowrap;
+    }
+
+    .zsz-range {
+        accent-color: var(--on);
+        width: 11em;
+    }
+
+    .zsz-input {
+        flex: none;
+        margin-left: auto;
+        font: inherit;
+        font-size: 0.85em;
+        color: var(--content-color);
+        background: transparent;
+        border: 1px solid var(--line);
+        border-radius: 0.5em;
+        padding: 0.3em 0.6em;
+        max-width: 14em;
+    }
+
+    .zsz-color {
+        flex: none;
+        margin-left: auto;
+        width: 3em;
+        height: 1.8em;
+        padding: 0;
+        border: 1px solid var(--line);
+        border-radius: 0.5em;
+        background: transparent;
+        cursor: pointer;
+    }
+
     .zsz-switch {
         flex: none;
         position: relative;
@@ -336,6 +423,8 @@
         var root = document.getElementById('zsz');
         var state = null;
         var showAll = false;
+        var justSent = false;
+        var pending = false;
 
         // Der Browser-Speicher kann fehlen oder eine Ausnahme werfen, die Kachel funktioniert auch ohne
         try {
@@ -395,6 +484,146 @@
             return hero;
         }
 
+        // Schickt einen gewählten Wert an das Modul. Das Modul prüft ihn und schreibt über die Aktion der Variable.
+        function sendValue(item, value) {
+            justSent = true;
+            requestAction('Set', JSON.stringify({id: item.id, value: value}));
+        }
+
+        function sameValue(a, b) {
+            if (typeof a === 'number' && typeof b === 'number') {
+                return Math.abs(a - b) < 0.000001;
+            }
+            return String(a) === String(b);
+        }
+
+        // Segmentleiste: ein Knopf je Eintrag, der aktive ist gefüllt, eine eigene Farbe färbt den Knopf
+        function buildSegments(entries, activeIndex, onPick) {
+            var seg = el('div', 'zsz-seg');
+            entries.forEach(function (entry, index) {
+                var button = el('button', 'zsz-segBtn' + (index === activeIndex ? ' zsz-segOn' : ''), entry.label);
+                button.type = 'button';
+                if (entry.color) {
+                    button.style.setProperty('--seg', entry.color);
+                }
+                button.addEventListener('click', function () {
+                    onPick(entry);
+                });
+                seg.appendChild(button);
+            });
+            return seg;
+        }
+
+        // Steuerelement nach der Darstellung der Variable: Auswahl, Rollladen, Schieberegler, Farbe oder Eingabe
+        function buildControl(item, texts) {
+            var c = item.c;
+            var entries;
+            var active = -1;
+
+            if (c.t === 'enum') {
+                c.o.forEach(function (option, index) {
+                    if (sameValue(option.v, c.v)) {
+                        active = index;
+                    }
+                });
+                if (c.o.length > 6) {
+                    var select = el('select', 'zsz-input');
+                    if (active < 0) {
+                        var blank = el('option', '', item.fv || '-');
+                        blank.value = '';
+                        select.appendChild(blank);
+                    }
+                    c.o.forEach(function (option, index) {
+                        var entry = el('option', '', option.c);
+                        entry.value = String(index);
+                        select.appendChild(entry);
+                    });
+                    select.value = active < 0 ? '' : String(active);
+                    select.addEventListener('change', function () {
+                        if (select.value !== '') {
+                            sendValue(item, c.o[Number(select.value)].v);
+                        }
+                    });
+                    return select;
+                }
+                entries = c.o.map(function (option) {
+                    return {label: option.c, color: option.k, value: option.v};
+                });
+                return buildSegments(entries, active, function (entry) {
+                    sendValue(item, entry.value);
+                });
+            }
+
+            if (c.t === 'shutter') {
+                entries = c.o.map(function (option) {
+                    var label = option.p === 0 ? texts.shutterOpen : option.p === 100 ? texts.shutterClosed : option.p + ' %';
+                    return {label: label, value: option.v, percent: option.p};
+                });
+                // Der Knopf, der der Position am nächsten liegt, ist aktiv, aber nur bis 1,5 Prozentpunkte Abstand
+                var distance = 1.5;
+                entries.forEach(function (entry, index) {
+                    if (Math.abs(entry.percent - c.p) <= distance) {
+                        distance = Math.abs(entry.percent - c.p);
+                        active = index;
+                    }
+                });
+                var shutter = el('div', 'zsz-ctl');
+                if (active < 0 && item.fv) {
+                    shutter.appendChild(el('span', 'zsz-hint', item.fv));
+                }
+                shutter.appendChild(buildSegments(entries, active, function (entry) {
+                    sendValue(item, entry.value);
+                }));
+                return shutter;
+            }
+
+            if (c.t === 'slider') {
+                var box = el('div', 'zsz-ctl');
+                var label = el('span', 'zsz-hint', item.fv || String(c.v));
+                var range = el('input', 'zsz-range');
+                range.type = 'range';
+                range.min = c.min;
+                range.max = c.max;
+                range.step = c.step;
+                range.value = c.v;
+                range.addEventListener('input', function () {
+                    label.textContent = range.value;
+                });
+                // Gesendet wird beim Loslassen, nicht bei jeder Bewegung
+                range.addEventListener('change', function () {
+                    sendValue(item, Number(range.value));
+                });
+                box.appendChild(label);
+                box.appendChild(range);
+                return box;
+            }
+
+            if (c.t === 'color') {
+                var color = el('input', 'zsz-color');
+                color.type = 'color';
+                color.value = '#' + ('000000' + Number(c.v).toString(16)).slice(-6);
+                color.addEventListener('change', function () {
+                    sendValue(item, parseInt(color.value.slice(1), 16));
+                });
+                return color;
+            }
+
+            if (c.t === 'text') {
+                var input = el('input', 'zsz-input');
+                input.type = 'text';
+                input.value = String(c.v);
+                if (c.num) {
+                    input.inputMode = 'decimal';
+                }
+                input.addEventListener('change', function () {
+                    sendValue(item, c.num ? Number(input.value.replace(',', '.')) : input.value);
+                });
+                return input;
+            }
+
+            return null;
+        }
+
         function buildRow(item, texts) {
             var cls = item.a === null ? 'zsz-na' : item.a ? 'zsz-on' : 'zsz-off';
             var row = el('div', 'zsz-row ' + cls);
@@ -402,7 +631,10 @@
             row.appendChild(el('span', 'zsz-rowName', item.n));
 
             // Schaltbare Variablen zeigen ihren Zustand am Schalter, alle anderen rechts als Badge in der Farbe des Zustands
-            if (!(item.s === 1 && item.a !== null)) {
+            var control = item.c && item.a !== null ? buildControl(item, texts) : null;
+            if (control) {
+                row.appendChild(control);
+            } else if (!(item.s === 1 && item.a !== null)) {
                 row.appendChild(el('span', 'zsz-badge', item.a === null ? texts.missing : item.a ? texts.unit : texts.off));
             }
 
@@ -496,8 +728,28 @@
             } catch (e) {
                 return;
             }
+            // Wer gerade in ein Feld tippt oder einen Regler zieht, wird nicht unterbrochen. Nach dem Absenden eines
+            // Werts zeichnet die nächste Meldung sofort neu.
+            if (!justSent && isEditing()) {
+                pending = true;
+                return;
+            }
+            justSent = false;
+            pending = false;
             render();
         };
+
+        function isEditing() {
+            var element = document.activeElement;
+            return element && root.contains(element) && (element.tagName === 'INPUT' || element.tagName === 'SELECT');
+        }
+
+        root.addEventListener('focusout', function () {
+            if (pending && !isEditing()) {
+                pending = false;
+                render();
+            }
+        });
 
         window.addEventListener('resize', fit);
         fit();
