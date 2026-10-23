@@ -4,6 +4,7 @@
             "type": "Select",
             "name": "Kind",
             "caption": "Type",
+            "onChange": "IPS_RequestAction($id, 'UIKind', $Kind);",
             "options": [
                 {
                     "caption": "Light (on / off)",
@@ -12,6 +13,10 @@
                 {
                     "caption": "Window (open / closed)",
                     "value": 1
+                },
+                {
+                    "caption": "Shutters (not fully open)",
+                    "value": 3
                 },
                 {
                     "caption": "Custom",
@@ -30,6 +35,11 @@
             "caption": "Text for nothing active (empty = default of the type)"
         },
         {
+            "type": "ValidationTextBox",
+            "name": "ShutterSteps",
+            "caption": "Steps for shutters in percent closed, comma separated (empty = 25, 50, 75, 99)"
+        },
+        {
             "type": "CheckBox",
             "name": "GroupVariables",
             "caption": "Create a counter variable per group"
@@ -42,7 +52,8 @@
         {
             "type": "CheckBox",
             "name": "CustomColors",
-            "caption": "Use custom colors instead of the Symcon design"
+            "caption": "Use custom colors instead of the Symcon design",
+            "onChange": "IPS_RequestAction($id, 'UIColors', $CustomColors);"
         },
         {
             "type": "SelectColor",
@@ -58,7 +69,7 @@
         },
         {
             "type": "Label",
-            "caption": "Boolean variables count when true, numbers above 0, texts when neither empty nor 0. Inverted counts the opposite, for example for windows that report closed as true. Groups appear in the order of the list. A row contains either a variable or another counter instance. Its variables are taken over and form one group, for example for a total over several floors."
+            "caption": "Boolean variables count when true, numbers above 0, texts when neither empty nor 0. With the type Shutters, a variable with the shutter presentation counts as long as it is not fully open. Inverted counts the opposite, for example for windows that report closed as true. Groups appear in the order of the list. A row contains either a variable or another counter instance. Its variables are taken over and form one group, for example for a total over several floors."
         },
         {
             "type": "List",
@@ -169,6 +180,11 @@
             "code": 201,
             "icon": "error",
             "caption": "At least one variable is missing"
+        },
+        {
+            "code": 202,
+            "icon": "error",
+            "caption": "Invalid shutter steps"
         }
     ]
 }

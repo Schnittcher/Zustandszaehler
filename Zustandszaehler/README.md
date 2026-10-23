@@ -13,10 +13,13 @@ Zählt, wie viele Lichter an oder Fenster offen sind, getrennt nach Gruppen wie 
 
 ## 1. Konfiguration
 
+Das Formular zeigt nur die Felder, die zur Art passen: "Stufen für Rollos" nur bei der Art Rollos, die beiden Farben nur mit der Option "Eigene Farben".
+
 Feld | Beschreibung
 ------------ | ----------------
-Art | Licht (an / aus), Fenster (offen / geschlossen) oder Benutzerdefiniert. Die Art bestimmt die Texte und die Farbe der Kachel.
+Art | Licht (an / aus), Fenster (offen / geschlossen), Rollos (nicht ganz offen) oder Benutzerdefiniert. Die Art bestimmt die Texte der Kachel und bei Rollos, wann ein Rollladen zählt.
 Text für aktiv | Gilt für jede Art. Ersetzt die Überschrift der Kachel, zum Beispiel "Geräte aktiv". Leer bleibt die Vorgabe der Art ("Lichter an", "Fenster offen", "aktiv"). Bei der Art Benutzerdefiniert steht der Text auch als Bezeichnung des Zustands in der Liste.
+Stufen für Rollos | Prozentwerte "geschlossen" zwischen 1 und 99, durch Komma getrennt, zum Beispiel `25, 50, 75, 99`. Daraus entstehen die Knöpfe der Rollladen-Steuerung in der Kachel, dazu kommen immer Auf und Zu. Leer gilt die Vorgabe `25, 50, 75, 99`. Ungültige Einträge fallen weg, die Instanz zeigt dann den Status "Ungültige Stufen für Rollos".
 Text für nichts aktiv | Gilt für jede Art. Ersetzt die Meldung, wenn nichts aktiv ist, zum Beispiel "Alles inaktiv", auch in der Übersicht. Leer bleibt die Vorgabe der Art ("Alles aus", "Alles geschlossen", "Alles inaktiv").
 Zählvariable je Gruppe anlegen | Legt für jede Gruppe eine eigene Zählvariable an. Standard: an.
 Kleine Kachel vollständig einfärben | Färbt die ganze kleine Kachel in der Zustandsfarbe, nicht nur eine Fläche darin. In der maximierten Ansicht bleibt der Hintergrund normal, damit die Liste lesbar ist. Standard: an.
@@ -43,6 +46,8 @@ Ja/Nein | bei true
 Ganzzahl und Kommazahl | bei einem Wert über 0
 Text | bei einem Wert, der nicht leer und nicht 0 ist
 
+Bei der Art Rollos zählt ein Rollladen, solange er nicht ganz offen ist. Das gilt für Variablen mit der Darstellung Rollladen: Offen ist der Wert "Öffnen bei" der Darstellung, ein Wert innerhalb von 0,5 % der Strecke bis "Geschlossen bei" zählt noch als offen. Andere Variablen zählen auch bei dieser Art nach der Tabelle oben. Bei den anderen Arten gilt die Tabelle für alle Variablen, auch für Rollladen.
+
 Existiert eine Variable nicht mehr, zählt sie nicht mit. Die Instanz zeigt dann den Status "Mindestens eine Variable fehlt", die Kachel kennzeichnet das Element als nicht verfügbar.
 
 ## 2. Variablen
@@ -65,7 +70,19 @@ Eine Instanz ergibt eine Kachel. Für eine Kachel je Etage legt man deshalb je E
 * Die Kachel passt sich der Größe des Felds an. In einem kleinen Feld (1×1) bleibt nur die Zahl, etwas größer kommt die Überschrift dazu, erst in einem großen Feld auch die Zeile "x von y".
 * In der maximierten Ansicht steht darunter die Liste der Variablen in der Reihenfolge der Konfiguration. Bei mehreren Gruppen ist die Liste nach Gruppen gegliedert.
 * Der Zustand einer Zeile steht rechts als Badge: aktiv gefüllt in der Farbe für aktiv, nicht aktiv in der Farbe für "nichts aktiv" (ohne eigene Farben grün), nicht verfügbare Variablen gestrichelt. Schaltbare Variablen zeigen stattdessen nur den Schalter.
-* Ja/Nein-Variablen mit Aktion, zum Beispiel Lichter, lassen sich in der Liste direkt schalten. Variablen ohne Aktion, Zahlen und Texte zeigen nur den Zustand. Geschaltet wird über die Aktion der Variable, das Gerät schaltet also tatsächlich.
+* Variablen mit Aktion lassen sich in der Liste direkt bedienen. Das Steuerelement richtet sich nach der Darstellung der Variable:
+
+Darstellung der Variable | Steuerelement in der Liste
+------------ | ----------------
+Ja/Nein (zum Beispiel Schalter) | Schalter
+Auswahl, oder Variablenprofil mit Assoziationen | Knöpfe mit den Beschriftungen und Farben der Auswahl, ab 7 Einträgen eine Auswahlliste
+Rollladen | Knöpfe Auf, die Stufen (zum Beispiel 25 %, 50 %, 75 %, 99 %) und Zu. Der Knopf der aktuellen Position ist gefüllt, liegt die Position dazwischen, steht der Wert als Text davor ("60 % geschlossen"). Die Prozentwerte sind "geschlossen".
+Schieberegler, oder Zahlenprofil mit Wertebereich | Schieberegler mit Wert, gesendet wird beim Loslassen
+Farbe | Farbwähler
+Werteingabe und Textfeld | Eingabefeld, gesendet beim Verlassen des Felds
+alle anderen und Variablen ohne Aktion | nur der Zustand als Badge
+
+Geschaltet wird über die Aktion der Variable, das Gerät schaltet also tatsächlich. Das Modul schreibt nur Werte, die zum Steuerelement passen (zum Beispiel ein Wert aus der Auswahl oder im Bereich des Reglers), und nur in Variablen der Liste. Während jemand in ein Feld tippt oder einen Regler zieht, zeichnet die Kachel nicht neu.
 * Die Schaltfläche "Alle anzeigen" blendet auch die inaktiven Elemente ein. Die Auswahl merkt sich der Browser.
 * Elemente mit fehlender Variable erscheinen gestrichelt als nicht verfügbar.
 

@@ -18,8 +18,8 @@ Fachliche und technische Orientierung für dieses Repository. Ergänzt die lokal
 | Bereich | Datei oder Verzeichnis | Bedeutung |
 | --- | --- | --- |
 | Bibliothek | `library.json` | Bibliothek `Zustandszaehler` |
-| Modul | `Zustandszaehler/module.php` | Zähllogik, Variablen, Nachrichten, Aktion `Toggle`, Kachel-Daten |
-| Konfiguration | `Zustandszaehler/form.json` | Properties `Kind`, `ActiveText`, `InactiveText`, `GroupVariables`, `FillTile`, `CustomColors`, `ActiveColor`, `ClearColor`, `Items` |
+| Modul | `Zustandszaehler/module.php` | Zähllogik (auch Art Rollos), Variablen, Nachrichten, Aktionen `Toggle` und `Set`, Steuerelemente nach der Darstellung, Kachel-Daten |
+| Konfiguration | `Zustandszaehler/form.json` (statisch, `GetConfigurationForm()` blendet Stufen für Rollos und Farben je nach Konfiguration aus, im offenen Formular über die Aktionen `UIKind` und `UIColors`) | Properties `Kind`, `ActiveText`, `InactiveText`, `GroupVariables`, `FillTile`, `CustomColors`, `ActiveColor`, `ClearColor`, `Items` |
 | Kachel | `Zustandszaehler/module.html` | HTML, CSS und JavaScript der Kachel, ohne Texte |
 | Tests | `tests/ZustandszaehlerTest.php`, `tests/LocalizationTest.php`, `tests/LibraryValidationTest.php`, `phpunit.xml` | Zähllogik, Gruppen, Instanzverweise, Kreise, Schalten, Kachel-Daten; englische Originale mit deutscher Übersetzung (`standards/LOCALIZATION.md`); Validator der Stubs für `library.json`, `module.json`, `form.json`, `locale.json` |
 | Qualität | `.style/`, `tests/stubs/`, `.github/workflows/style.yml`, `.github/workflows/tests.yml` | `symcon-check` im Projektordner |
@@ -30,14 +30,14 @@ Die Instanz liest die Liste `Items` (JSON). Jede Zeile enthält entweder eine Va
 
 `ApplyChanges()` registriert `VM_UPDATE` und `VM_DELETE` für jede Variable und `IM_CHANGESETTINGS` für jede übernommene Instanz. `Update()` zählt neu, schreibt die Variablen und schickt die Kachel-Daten nur bei einer Änderung (Hash im Buffer `TileHash`).
 
-Die Kachel ist ein Gerät (`type` 3) mit `module.html`. Sie bekommt Zählstände, Namen, Farben und übersetzte Texte als JSON über `handleMessage`. Die Aktion `Toggle` kommt als `requestAction` aus der Kachel. Das Modul prüft, dass die Variable in der Liste steht, eine Ja/Nein-Variable mit Aktion ist, und schaltet über deren Aktion.
+Die Kachel ist ein Gerät (`type` 3) mit `module.html`. Sie bekommt Zählstände, Namen, Farben und übersetzte Texte als JSON über `handleMessage`. Die Aktionen `Toggle` und `Set` kommen als `requestAction` aus der Kachel. Das Modul prüft, dass die Variable in der Liste steht und eine Aktion hat, und schreibt über deren Aktion.
 
 ## Öffentliche und persistente Verträge
 
 - Properties: siehe Modul-README, Abschnitt Konfiguration. Die Namen sind stabil.
 - Variablen und Idents: `Total`, `AnyActive`, `Summary`, `Group_<Gruppenname>` (Umlaute umgeschrieben).
 - Öffentliche Methoden: `ZSZ_Update`, `ZSZ_GetActive` (ohne Standardwert, Symcon erzeugt die Funktion für Skripte ohne Defaults).
-- Aktion: `Toggle` mit der ID einer Variable aus der Liste.
+- Aktionen: `Toggle` mit der ID einer Variable aus der Liste. `Set` mit einem JSON-Text `{"id": <Variable>, "value": <Wert>}`. Das Modul prüft den Wert gegen das Steuerelement, das aus der Darstellung der Variable entsteht (Auswahl, Rollladen, Schieberegler, Farbe, Eingabe), und schreibt über die Aktion der Variable. Die Darstellungen kennt das Modul über ihre GUIDs, die Konstanten `VARIABLE_PRESENTATION_*` fehlen auf älteren Systemen.
 - Migrationen: keine, erste Version.
 
 ## Prüfung und Veröffentlichung

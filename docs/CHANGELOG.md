@@ -1,5 +1,12 @@
 # Changelog
 
+## 23.10.2026 - Version 1.1
+
+### Neu
+- Neue Art "Rollos": Ein Rollladen zählt, solange er nicht ganz offen ist. Die Stufen der Steuerung (Auf, 25 %, 50 %, 75 %, 99 %, Zu) sind einstellbar.
+- Die Liste der Kachel bedient Variablen nach ihrer Darstellung: Auswahl und Variablenprofile als Knöpfe oder Auswahlliste, Rollladen als Stufenleiste, Schieberegler, Farbwähler und Eingabefelder.
+- Das Konfigurationsformular zeigt nur die Felder, die zur Art passen: die Stufen für Rollos nur bei der Art Rollos, die beiden Farben nur mit eigenen Farben.
+
 ## 20.10.2026 - Version 1.0.2
 
 ### Neu

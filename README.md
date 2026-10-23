@@ -29,6 +29,8 @@ Mit diesem Modul lässt sich zählen, wie viele Lichter an oder Fenster offen si
 
 ![Licht und Fenster nebeneinander mit der Liste je Gruppe, Schaltern und Badges](docs/screenshots/kachel_gross.png)
 
+![Rollos mit Stufenleiste von Auf bis Zu je Rollladen](docs/screenshots/rollos.png)
+
 ## 1. Voraussetzungen
 
 * mindestens IPS Version 9.0

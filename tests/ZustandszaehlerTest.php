@@ -524,7 +524,294 @@ class ZustandszaehlerTest extends TestCase
         $this->assertMatchesRegularExpression('/<script>handleMessage\(".*"\);<\/script>\s*$/s', $html);
     }
 
+    // --- Rollos ---
+
+    public function testShutterKindCountsShuttersThatAreNotFullyOpen(): void
+    {
+        $open = $this->shutterVar(1.0);
+        $partlyClosed = $this->shutterVar(0.06);
+        $closed = $this->shutterVar(0.0);
+        $almostOpen = $this->shutterVar(0.999);
+
+        $counter = $this->counter([
+            $this->row('EG', $open),
+            $this->row('EG', $partlyClosed),
+            $this->row('EG', $closed),
+            $this->row('EG', $almostOpen)
+        ], ['Kind' => 3]);
+
+        // Aktiv sind das teilweise und das ganz geschlossene Rollo, ein Wert innerhalb von 0,5 % der Strecke gilt als offen
+        $this->assertSame(2, $this->total($counter));
+        $this->assertSame('Shutters not open', $this->tileData($counter)['texts']['headline']);
+        $this->assertSame('All open', $this->tileData($this->counter([$this->row('EG', $open)], ['Kind' => 3]))['texts']['clear']);
+    }
+
+    public function testShutterOpenAndClosedValuesComeFromThePresentation(): void
+    {
+        // Bei diesem Rollladen ist 0 offen und 150 geschlossen
+        $open = $this->shutterVar(0.0, 0.0, 150.0);
+        $closed = $this->shutterVar(150.0, 0.0, 150.0);
+        $half = $this->shutterVar(75.0, 0.0, 150.0);
+
+        $counter = $this->counter([$this->row('EG', $open), $this->row('EG', $closed), $this->row('EG', $half)], ['Kind' => 3]);
+        $this->assertSame(2, $this->total($counter));
+
+        // Mit Invertiert zählt das Gegenteil
+        $inverted = $this->counter([$this->row('EG', $open, '', true), $this->row('EG', $closed, '', true)], ['Kind' => 3]);
+        $this->assertSame(1, $this->total($inverted));
+    }
+
+    public function testOtherKindsAndOtherVariablesUseTheGenericRule(): void
+    {
+        $shutter = $this->shutterVar(1.0);
+        $plainNumber = $this->floatVar(0.0);
+
+        // Bei Licht zählt die Zahl über 0, auch bei einem Rollladen
+        $this->assertSame(1, $this->total($this->counter([$this->row('EG', $shutter)], ['Kind' => 0])));
+        // Bei Rollos zählt eine Zahl ohne die Darstellung Rollladen nach der allgemeinen Regel
+        $this->assertSame(0, $this->total($this->counter([$this->row('EG', $plainNumber)], ['Kind' => 3])));
+    }
+
+    public function testShutterControlHasTheStepsAndTheCurrentPosition(): void
+    {
+        $counter = $this->counter([$this->row('EG', $this->shutterVar(0.06))], ['Kind' => 3]);
+
+        $control = $this->tileData($counter)['groups'][0]['items'][0]['c'];
+
+        $this->assertSame('shutter', $control['t']);
+        $this->assertSame([0, 25, 50, 75, 99, 100], array_column($control['o'], 'p'));
+        $this->assertEqualsWithDelta([1.0, 0.75, 0.5, 0.25, 0.01, 0.0], array_column($control['o'], 'v'), 0.00001);
+        $this->assertEqualsWithDelta(94.0, $control['p'], 0.01);
+    }
+
+    public function testShutterStepsAreConfigurableAndInvalidEntriesAreReported(): void
+    {
+        $rows = [$this->row('EG', $this->shutterVar(0.5))];
+        $steps = fn (array $configuration) => array_column($this->tileData($this->counter($rows, ['Kind' => 3] + $configuration))['groups'][0]['items'][0]['c']['o'], 'p');
+
+        $this->assertSame([0, 10, 40, 90, 100], $steps(['ShutterSteps' => '90%, 10; 40 40']));
+        // Ein leeres Feld gilt als Vorgabe und ist kein Fehler
+        $empty = $this->counter($rows, ['Kind' => 3, 'ShutterSteps' => '']);
+        $this->assertSame(self::STATUS_ACTIVE, $this->instanceStatus($empty));
+        $this->assertSame([0, 25, 50, 75, 99, 100], $steps(['ShutterSteps' => '  ']));
+
+        // Ungültige Einträge fallen weg und die Instanz meldet es im Status, gültige bleiben
+        $mixed = $this->counter($rows, ['Kind' => 3, 'ShutterSteps' => 'abc, 0, 100, 30, 150']);
+        $this->assertSame(202, $this->instanceStatus($mixed));
+        $this->assertSame([0, 30, 100], $steps(['ShutterSteps' => 'abc, 0, 100, 30, 150']));
+        // Sind alle ungültig, gilt die Vorgabe
+        $none = $this->counter($rows, ['Kind' => 3, 'ShutterSteps' => 'x, y']);
+        $this->assertSame(202, $this->instanceStatus($none));
+        $this->assertSame([0, 25, 50, 75, 99, 100], $steps(['ShutterSteps' => 'x, y']));
+    }
+
+    // --- Steuerelemente nach der Darstellung ---
+
+    public function testControlsFollowThePresentationOfTheVariable(): void
+    {
+        $enum = $this->presentedVar(VARIABLETYPE_INTEGER, 1, $this->enumPresentation([[0, 'Aus'], [1, 'Stufe 1'], [2, 'Stufe 2']]));
+        $slider = $this->presentedVar(VARIABLETYPE_INTEGER, 40, ['PRESENTATION' => '{6B9CAEEC-5958-C223-30F7-BD36569FC57A}', 'MIN' => 0, 'MAX' => 100, 'STEP_SIZE' => 5]);
+        $color = $this->presentedVar(VARIABLETYPE_INTEGER, 0xFF8800, ['PRESENTATION' => '{05CC3CC2-A0B2-5837-A4A7-A07EA0B9DDFB}']);
+        $text = $this->presentedVar(VARIABLETYPE_STRING, 'Hallo', ['PRESENTATION' => '{6F477326-1683-A2FD-D2E7-477F366ECB62}']);
+        $number = $this->presentedVar(VARIABLETYPE_FLOAT, 21.5, ['PRESENTATION' => '{6F477326-1683-A2FD-D2E7-477F366ECB62}']);
+        $display = $this->presentedVar(VARIABLETYPE_INTEGER, 3, ['PRESENTATION' => '{3319437D-7CDE-699D-750A-3C6A3841FA75}']);
+        $readOnlyEnum = $this->presentedVar(VARIABLETYPE_INTEGER, 1, $this->enumPresentation([[0, 'Aus'], [1, 'An']]), false);
+        $switch = $this->switchableBool(true);
+
+        $counter = $this->counter(array_map(fn (int $id) => $this->row('EG', $id), [$enum, $slider, $color, $text, $number, $display, $readOnlyEnum, $switch]));
+        $items = $this->tileData($counter)['groups'][0]['items'];
+
+        $this->assertSame('enum', $items[0]['c']['t']);
+        $this->assertSame(['Aus', 'Stufe 1', 'Stufe 2'], array_column($items[0]['c']['o'], 'c'));
+        $this->assertSame('slider', $items[1]['c']['t']);
+        $this->assertEquals(['min' => 0.0, 'max' => 100.0, 'step' => 5.0], ['min' => $items[1]['c']['min'], 'max' => $items[1]['c']['max'], 'step' => $items[1]['c']['step']]);
+        $this->assertSame('color', $items[2]['c']['t']);
+        $this->assertSame(['t' => 'text', 'num' => false, 'v' => 'Hallo'], $items[3]['c']);
+        $this->assertSame(['t' => 'text', 'num' => true, 'v' => 21.5], $items[4]['c']);
+        // Wertanzeige, Variable ohne Aktion und Ja/Nein-Variable haben kein Steuerelement, der Schalter hat das Kennzeichen s
+        $this->assertArrayNotHasKey('c', $items[5]);
+        $this->assertArrayNotHasKey('c', $items[6]);
+        $this->assertArrayNotHasKey('c', $items[7]);
+        $this->assertSame(1, $items[7]['s']);
+    }
+
+    public function testClassicProfilesBecomeChoicesOrSliders(): void
+    {
+        IPS_CreateVariableProfile('ZSZ.Mode', VARIABLETYPE_INTEGER);
+        IPS_SetVariableProfileAssociation('ZSZ.Mode', 0, 'Off', '', -1);
+        IPS_SetVariableProfileAssociation('ZSZ.Mode', 1, 'Level %d', '', 0xFF0000);
+        IPS_CreateVariableProfile('ZSZ.Level', VARIABLETYPE_INTEGER);
+        IPS_SetVariableProfileValues('ZSZ.Level', 0, 50, 5);
+        IPS_CreateVariableProfile('ZSZ.Fixed', VARIABLETYPE_INTEGER);
+        IPS_SetVariableProfileAssociation('ZSZ.Fixed', 0, 'Zero', '', -1);
+
+        $choice = $this->intVar(1);
+        IPS_SetVariableCustomProfile($choice, 'ZSZ.Mode');
+        IPS_SetVariableCustomAction($choice, $this->actionScript());
+        $level = $this->intVar(10);
+        IPS_SetVariableCustomProfile($level, 'ZSZ.Level');
+        IPS_SetVariableCustomAction($level, $this->actionScript());
+        $noProfile = $this->intVar(1);
+        IPS_SetVariableCustomAction($noProfile, $this->actionScript());
+
+        $counter = $this->counter([$this->row('EG', $choice), $this->row('EG', $level), $this->row('EG', $noProfile)]);
+        $items = $this->tileData($counter)['groups'][0]['items'];
+
+        $this->assertSame('enum', $items[0]['c']['t']);
+        $this->assertSame(['Off', 'Level 1'], array_column($items[0]['c']['o'], 'c'));
+        $this->assertSame([null, '#FF0000'], array_column($items[0]['c']['o'], 'k'));
+        $this->assertSame('slider', $items[1]['c']['t']);
+        $this->assertEquals(50.0, $items[1]['c']['max']);
+        $this->assertArrayNotHasKey('c', $items[2]);
+    }
+
+    // --- Werte aus der Kachel setzen ---
+
+    public function testSetWritesValuesThatFitTheControl(): void
+    {
+        $shutter = $this->shutterVar(1.0);
+        $enum = $this->presentedVar(VARIABLETYPE_INTEGER, 0, $this->enumPresentation([[0, 'Aus'], [1, 'Stufe 1'], [2, 'Stufe 2']]));
+        $slider = $this->presentedVar(VARIABLETYPE_INTEGER, 0, ['PRESENTATION' => '{6B9CAEEC-5958-C223-30F7-BD36569FC57A}', 'MIN' => 0, 'MAX' => 100, 'STEP_SIZE' => 5]);
+        $color = $this->presentedVar(VARIABLETYPE_INTEGER, 0, ['PRESENTATION' => '{05CC3CC2-A0B2-5837-A4A7-A07EA0B9DDFB}']);
+        $text = $this->presentedVar(VARIABLETYPE_STRING, '', ['PRESENTATION' => '{56696857-92B2-1780-16B8-EB6F09D4AEF7}']);
+        $number = $this->presentedVar(VARIABLETYPE_FLOAT, 0.0, ['PRESENTATION' => '{6F477326-1683-A2FD-D2E7-477F366ECB62}']);
+        $lamp = $this->switchableBool(false);
+        $counter = $this->counter(array_map(fn (int $id) => $this->row('EG', $id), [$shutter, $enum, $slider, $color, $text, $number, $lamp]), ['Kind' => 3]);
+
+        $this->set($counter, $shutter, 0.25);
+        $this->set($counter, $enum, '2');
+        $this->set($counter, $slider, 55.4);
+        $this->set($counter, $color, 0xFF8800);
+        $this->set($counter, $text, 'Küche');
+        $this->set($counter, $number, '3,5');
+        $this->set($counter, $lamp, true);
+
+        $this->assertEqualsWithDelta(0.25, GetValueFloat($shutter), 0.00001);
+        $this->assertSame(2, GetValueInteger($enum));
+        // Zahlen werden in den Typ der Variable gebracht
+        $this->assertSame(55, GetValueInteger($slider));
+        $this->assertSame(0xFF8800, GetValueInteger($color));
+        $this->assertSame('Küche', GetValueString($text));
+        $this->assertTrue(GetValueBoolean($lamp));
+        // Eine Zahl mit Komma ist keine Zahl für PHP, das Modul lehnt sie ab
+        $this->assertEqualsWithDelta(0.0, GetValueFloat($number), 0.00001);
+        $this->set($counter, $number, 3.5);
+        $this->assertEqualsWithDelta(3.5, GetValueFloat($number), 0.00001);
+    }
+
+    public function testSetRefusesValuesThatDoNotFit(): void
+    {
+        $shutter = $this->shutterVar(0.5);
+        $enum = $this->presentedVar(VARIABLETYPE_INTEGER, 1, $this->enumPresentation([[0, 'Aus'], [1, 'Stufe 1']]));
+        $slider = $this->presentedVar(VARIABLETYPE_INTEGER, 20, ['PRESENTATION' => '{6B9CAEEC-5958-C223-30F7-BD36569FC57A}', 'MIN' => 0, 'MAX' => 100, 'STEP_SIZE' => 5]);
+        $color = $this->presentedVar(VARIABLETYPE_INTEGER, 5, ['PRESENTATION' => '{05CC3CC2-A0B2-5837-A4A7-A07EA0B9DDFB}']);
+        $text = $this->presentedVar(VARIABLETYPE_STRING, 'alt', ['PRESENTATION' => '{56696857-92B2-1780-16B8-EB6F09D4AEF7}']);
+        $counter = $this->counter(array_map(fn (int $id) => $this->row('EG', $id), [$shutter, $enum, $slider, $color, $text]), ['Kind' => 3]);
+
+        $this->set($counter, $shutter, 1.5);
+        $this->set($counter, $enum, 7);
+        $this->set($counter, $slider, 500);
+        $this->set($counter, $color, 0x1000000);
+        $this->set($counter, $text, str_repeat('x', 300));
+        // Ein Text statt einer Zahl und ein falsches Datenformat
+        $this->set($counter, $shutter, 'offen');
+        IPS_RequestAction($counter, 'Set', 'kein JSON');
+        IPS_RequestAction($counter, 'Set', json_encode(['id' => $enum]));
+
+        $this->assertEqualsWithDelta(0.5, GetValueFloat($shutter), 0.00001);
+        $this->assertSame(1, GetValueInteger($enum));
+        $this->assertSame(20, GetValueInteger($slider));
+        $this->assertSame(5, GetValueInteger($color));
+        $this->assertSame('alt', GetValueString($text));
+    }
+
+    public function testSetRefusesVariablesOutsideTheListOrWithoutAction(): void
+    {
+        $listed = $this->presentedVar(VARIABLETYPE_INTEGER, 0, $this->enumPresentation([[0, 'Aus'], [1, 'An']]));
+        $notListed = $this->presentedVar(VARIABLETYPE_INTEGER, 0, $this->enumPresentation([[0, 'Aus'], [1, 'An']]));
+        $withoutAction = $this->presentedVar(VARIABLETYPE_INTEGER, 0, $this->enumPresentation([[0, 'Aus'], [1, 'An']]), false);
+        $plain = $this->intVar(0);
+        IPS_SetVariableCustomAction($plain, $this->actionScript());
+        $counter = $this->counter(array_map(fn (int $id) => $this->row('EG', $id), [$listed, $withoutAction, $plain]));
+
+        $this->set($counter, $notListed, 1);
+        $this->set($counter, $withoutAction, 1);
+        // Ohne passende Darstellung gibt es kein Steuerelement, das Modul schreibt dort nichts
+        $this->set($counter, $plain, 1);
+        $this->set($counter, 99999, 1);
+        $this->set($counter, $listed, 1);
+
+        $this->assertSame(0, GetValueInteger($notListed));
+        $this->assertSame(0, GetValueInteger($withoutAction));
+        $this->assertSame(0, GetValueInteger($plain));
+        $this->assertSame(1, GetValueInteger($listed));
+    }
+
+    // --- Formular ---
+
+    public function testFormShowsOnlyFieldsThatFitTheConfiguration(): void
+    {
+        $static = json_decode((string) file_get_contents(__DIR__ . '/../Zustandszaehler/form.json'), true);
+
+        // Art Licht ohne eigene Farben: weder die Stufen für Rollos noch die Farben passen
+        $light = $this->form($this->counter([]));
+        $this->assertFalse($this->formField($light, 'ShutterSteps')['visible']);
+        $this->assertFalse($this->formField($light, 'ActiveColor')['visible']);
+        $this->assertFalse($this->formField($light, 'ClearColor')['visible']);
+        // Alles andere bleibt sichtbar
+        foreach (['Kind', 'ActiveText', 'InactiveText', 'GroupVariables', 'FillTile', 'CustomColors', 'Items'] as $name) {
+            $this->assertNotFalse($this->formField($light, $name)['visible'] ?? true, $name);
+        }
+
+        // Art Rollos mit eigenen Farben: beides ist sichtbar
+        $shutter = $this->form($this->counter([], ['Kind' => 3, 'CustomColors' => true]));
+        $this->assertTrue($this->formField($shutter, 'ShutterSteps')['visible']);
+        $this->assertTrue($this->formField($shutter, 'ActiveColor')['visible']);
+        $this->assertTrue($this->formField($shutter, 'ClearColor')['visible']);
+
+        // Fenster und Benutzerdefiniert haben keine Stufen für Rollos
+        foreach ([1, 2] as $kind) {
+            $this->assertFalse($this->formField($this->form($this->counter([], ['Kind' => $kind])), 'ShutterSteps')['visible']);
+        }
+
+        // Das Formular baut auf der statischen Datei auf und verliert nichts
+        $this->assertCount(count($static['elements']), $light['elements']);
+        $this->assertSame($static['actions'], $light['actions']);
+        $this->assertSame($static['status'], $light['status']);
+    }
+
+    public function testFormChangesInTheOpenDialogGoThroughNamedActions(): void
+    {
+        $form = json_decode((string) file_get_contents(__DIR__ . '/../Zustandszaehler/form.json'), true);
+
+        $this->assertStringContainsString("IPS_RequestAction(\$id, 'UIKind', \$Kind)", $this->formField($form, 'Kind')['onChange']);
+        $this->assertStringContainsString("IPS_RequestAction(\$id, 'UIColors', \$CustomColors)", $this->formField($form, 'CustomColors')['onChange']);
+
+        // Die Aktionen laufen ohne Fehler, auch mit unerwarteten Werten
+        $counter = $this->counter([]);
+        foreach ([['UIKind', 3], ['UIKind', '1'], ['UIColors', true], ['UIColors', 0], ['UIColors', 'x']] as [$ident, $value]) {
+            IPS_RequestAction($counter, $ident, $value);
+        }
+        $this->assertSame(self::STATUS_INACTIVE, $this->instanceStatus($counter));
+    }
+
     // --- Hilfen ---
+
+    private function form(int $instanceID): array
+    {
+        return json_decode(IPS_GetConfigurationForm($instanceID), true);
+    }
+
+    // Das Element mit dem Namen aus den Elementen eines Formulars
+    private function formField(array $form, string $name): array
+    {
+        foreach ($form['elements'] as $element) {
+            if (($element['name'] ?? '') === $name) {
+                return $element;
+            }
+        }
+        $this->fail('Feld ' . $name . ' fehlt im Formular');
+    }
 
     private function counter(array $rows, array $configuration = []): int
     {
@@ -578,6 +865,46 @@ class ZustandszaehlerTest extends TestCase
         $script = IPS_CreateScript(0);
         IPS_SetScriptContent($script, '<?php SetValue($_IPS[\'VARIABLE\'], $_IPS[\'VALUE\']);');
         return $script;
+    }
+
+    // Variable mit der Darstellung und, wenn gewünscht, einer Aktion, die den Wert setzt wie ein Gerät
+    private function presentedVar(int $type, mixed $value, array $presentation, bool $withAction = true): int
+    {
+        $id = IPS_CreateVariable($type);
+        SetValue($id, $value);
+        IPS_SetVariableCustomPresentation($id, $presentation);
+        if ($withAction) {
+            IPS_SetVariableCustomAction($id, $this->actionScript());
+        }
+        return $id;
+    }
+
+    // Rollladen als Kommazahl: $open ist der Wert für offen, $close der für geschlossen
+    private function shutterVar(float $value, float $open = 1.0, float $close = 0.0): int
+    {
+        return $this->presentedVar(VARIABLETYPE_FLOAT, $value, [
+            'PRESENTATION'       => '{6075FC22-69AF-B110-3749-C24138883082}',
+            'USAGE_TYPE'         => 0,
+            'OPEN_OUTSIDE_VALUE' => $open,
+            'CLOSE_INSIDE_VALUE' => $close
+        ]);
+    }
+
+    // Darstellung Auswahl aus Paaren [Wert, Beschriftung]
+    private function enumPresentation(array $pairs): array
+    {
+        return [
+            'PRESENTATION' => '{52D9E126-D7D2-2CBB-5E62-4CF7BA7C5D82}',
+            'LAYOUT'       => 1,
+            'DISPLAY'      => 0,
+            'OPTIONS'      => json_encode(array_map(fn (array $pair) => ['Value' => $pair[0], 'Caption' => $pair[1], 'Color' => -1, 'IconActive' => false, 'IconValue' => ''], $pairs))
+        ];
+    }
+
+    // Wert aus der Kachel: Die Kachel schickt die Aktion Set mit einem JSON-Text
+    private function set(int $counter, int $variableID, mixed $value): void
+    {
+        IPS_RequestAction($counter, 'Set', json_encode(['id' => $variableID, 'value' => $value]));
     }
 
     private function switchableBool(bool $value): int
