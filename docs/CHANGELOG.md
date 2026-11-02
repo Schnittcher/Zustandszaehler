@@ -7,6 +7,9 @@
 - Die Liste der Kachel bedient Variablen nach ihrer Darstellung: Auswahl und Variablenprofile als Knöpfe oder Auswahlliste, Rollladen als Stufenleiste, Schieberegler, Farbwähler und Eingabefelder.
 - Das Konfigurationsformular zeigt nur die Felder, die zur Art passen: die Stufen für Rollos nur bei der Art Rollos, die beiden Farben nur mit eigenen Farben.
 
+### Fixes
+- Der Dokumentationslink der Instanzen führt jetzt zur Dokumentation auf deinsmarthome.info.
+
 ## 20.10.2026 - Version 1.0.2
 
 ### Neu
