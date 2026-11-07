@@ -76,6 +76,7 @@ class Zustandszaehler extends IPSModuleStrict
         // Ändert sich die Liste einer übernommenen Instanz, baut sich diese Instanz neu auf
         foreach (array_keys($Instances) as $InstanceID) {
             $this->RegisterMessage($InstanceID, IM_CHANGESETTINGS);
+            $this->RegisterMessage($InstanceID, IM_CHANGESTATUS);
         }
 
         $this->maintainVariables();
@@ -121,6 +122,7 @@ class Zustandszaehler extends IPSModuleStrict
                     $this->ApplyChanges();
                 }
                 break;
+            case IM_CHANGESTATUS:
             case IM_CHANGESETTINGS:
                 $this->SendDebug(__FUNCTION__, 'Instanz ' . $SenderID . ' wurde geändert, die Liste wird neu aufgebaut', 0);
                 $this->ApplyChanges();
@@ -282,12 +284,23 @@ class Zustandszaehler extends IPSModuleStrict
                     ];
                     continue;
                 }
+                // Auch eine noch nicht lesbare Instanz wird beobachtet, damit sich diese Instanz neu aufbaut, sobald sie fertig ist
                 if ($Instances !== null) {
                     $Instances[$InstanceID] = true;
                 }
-                $ChildRows = json_decode(IPS_GetProperty($InstanceID, 'Items'), true);
+                $ChildRows = $this->childRows($InstanceID);
+                if ($ChildRows === null) {
+                    $this->SendDebug(__FUNCTION__, 'Instanz ' . $InstanceID . ' ist noch nicht bereit und wird vorerst als nicht verfügbar gezählt', 0);
+                    $Items[] = [
+                        'Group'      => $RowGroup !== '' ? $RowGroup : IPS_GetName($InstanceID),
+                        'Name'       => $Name !== '' ? $Name : IPS_GetName($InstanceID),
+                        'VariableID' => 0,
+                        'Invert'     => false
+                    ];
+                    continue;
+                }
                 $Items = array_merge($Items, $this->expandRows(
-                    is_array($ChildRows) ? $ChildRows : [],
+                    $ChildRows,
                     array_merge($Visited, [$InstanceID]),
                     $RowGroup !== '' ? $RowGroup : IPS_GetName($InstanceID),
                     $Instances
@@ -303,6 +316,30 @@ class Zustandszaehler extends IPSModuleStrict
             ];
         }
         return $Items;
+    }
+
+    /**
+     * Liest die Liste einer übernommenen Instanz. Null, wenn sie nicht lesbar ist. Das passiert beim Aktualisieren des
+     * Moduls, solange die andere Instanz noch angelegt wird: IPS_GetProperty meldet dann "InstanceInterface is not
+     * available" und liefert false.
+     */
+    private function childRows(int $InstanceID): ?array
+    {
+        try {
+            $Raw = @IPS_GetProperty($InstanceID, 'Items');
+        } catch (Throwable $e) {
+            return null;
+        }
+        return $this->decodeRows($Raw);
+    }
+
+    private function decodeRows(mixed $Raw): ?array
+    {
+        if (!is_string($Raw)) {
+            return null;
+        }
+        $Rows = json_decode($Raw, true);
+        return is_array($Rows) ? $Rows : null;
     }
 
     private function isCounterInstance(int $InstanceID): bool

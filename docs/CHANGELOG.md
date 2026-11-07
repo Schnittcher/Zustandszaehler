@@ -1,5 +1,10 @@
 # Changelog
 
+## 07.11.2026 - Version 1.1.2
+
+### Fixes
+- Beim Aktualisieren des Moduls scheitert das Anlegen einer Instanz nicht mehr, die auf einen anderen Zustandszähler verweist, solange dieser noch angelegt wird. Sie zählt ihn dann vorerst als nicht verfügbar und baut sich neu auf, sobald er bereit ist.
+
 ## 23.10.2026 - Version 1.1
 
 ### Neu

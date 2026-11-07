@@ -45,6 +45,8 @@ Die Kachel ist ein Gerät (`type` 3) mit `module.html`. Sie bekommt Zählstände
 - Lokale Prüfungen: `symcon-check` im Modulordner (Git auf der Netzfreigabe: `standards/GIT_WORKFLOW.md`).
 - Notwendige Praxistests: `symcon-dev`, Kachel in der Kachel-Visualisierung im hellen und dunklen Design, klein und maximiert (ab 9.1).
 
+- Store-Bundle: `schnittcher.info.ips.zustandszaehler`. Forum-Thread: https://community.symcon.de/t/modul-zustandszaehler
+
 ## Bekannte Risiken und offene Fragen
 
 - Die Kachel wurde in einer Testseite geprüft, noch nicht in der echten Visualisierung. Der Schwellwert für die maximierte Ansicht (24 Zeilenhöhen) ist geschätzt.
