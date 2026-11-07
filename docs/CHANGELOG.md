@@ -2,6 +2,9 @@
 
 ## 07.11.2026 - Version 1.1.2
 
+### Neu
+- Die Kachel nennt den Zustand hinter der Zahl, zum Beispiel "0 von 10 offen" oder "2 von 5 an".
+
 ### Fixes
 - Beim Aktualisieren des Moduls scheitert das Anlegen einer Instanz nicht mehr, die auf einen anderen Zustandszähler verweist, solange dieser noch angelegt wird. Sie zählt ihn dann vorerst als nicht verfügbar und baut sich neu auf, sobald er bereit ist.
 

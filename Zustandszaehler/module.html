@@ -479,7 +479,7 @@
 
             var text = el('div', 'zsz-heroText');
             text.appendChild(el('div', 'zsz-headline', clear ? data.texts.clear : data.texts.headline));
-            text.appendChild(el('div', 'zsz-sub', data.active + ' ' + data.texts.of + ' ' + data.total));
+            text.appendChild(el('div', 'zsz-sub', data.active + ' ' + data.texts.of + ' ' + data.total + ' ' + data.texts.unit));
             hero.appendChild(text);
             return hero;
         }
@@ -672,7 +672,7 @@
                 var section = el('div', 'zsz-section');
                 if (multiple) {
                     var name = el('div', 'zsz-groupName', group.name);
-                    name.appendChild(el('span', 'zsz-groupCount', group.active + ' ' + data.texts.of + ' ' + group.items.length));
+                    name.appendChild(el('span', 'zsz-groupCount', group.active + ' ' + data.texts.of + ' ' + group.items.length + ' ' + data.texts.unit));
                     section.appendChild(name);
                 }
                 if (items.length === 0) {
