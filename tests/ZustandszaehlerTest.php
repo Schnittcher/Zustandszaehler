@@ -297,6 +297,20 @@ class ZustandszaehlerTest extends TestCase
         $this->assertSame(self::STATUS_VARIABLE_MISSING, $this->instanceStatus($counter));
     }
 
+    // Beim Aktualisieren des Moduls liefert IPS_GetProperty für eine Instanz, die noch angelegt wird, false.
+    // json_decode(false) brach unter strict_types ab und ließ das Anlegen der verweisenden Instanz scheitern.
+    public function testRowsOfAnInstanceThatIsNotReadableYetDoNotBreakTheReference(): void
+    {
+        $module = IPS\InstanceManager::getInstanceInterface($this->counter([]));
+        $decode = new ReflectionMethod($module, 'decodeRows');
+
+        foreach ([false, null, '', 'kein JSON', '"Text"', 42] as $raw) {
+            $this->assertNull($decode->invoke($module, $raw), json_encode($raw));
+        }
+        $this->assertSame([], $decode->invoke($module, '[]'));
+        $this->assertSame([['VariableID' => 5]], $decode->invoke($module, '[{"VariableID":5}]'));
+    }
+
     // --- Kreise ---
 
     public function testSelfReferenceIsReportedAndDoesNotLoop(): void
